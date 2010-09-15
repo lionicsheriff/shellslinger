@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'yaml'
+require 'Pathname'
 
 $actions ={
     :enter => [
@@ -208,8 +209,8 @@ def do_action map,file,queue,prev_key=""
 end
 
 def act_on_file file
-    puts "--> #{file}"
-    unless [".",".."].include? file
+    unless [".",".."].include? File.basename(file)
+        puts "--> #{File.basename(file)}"
         q = []
         r,q = do_action $config[:keys],file,q until ( r == :next or r == :exit)
         unless q == []
@@ -223,10 +224,10 @@ def act_on_file file
 end
 
 def act_on_dir dir
-    puts "--> #{dir}/"
+    puts "#{dir}/"
     Dir.chdir(dir)
     Dir.foreach(dir) do | f |
-        act_on_file "#{dir}/#{f}"
+        act_on_file  "#{dir}/#{f}"
     end
 end
 
@@ -234,7 +235,6 @@ def act_on_path path
     if File.directory?(path) then 
         act_on_dir path
     else 
-        puts path
         act_on_file path
     end
 end
@@ -264,5 +264,3 @@ rescue StandardError => e
     puts e.backtrace
     exit 1
 end
-
-
