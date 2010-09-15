@@ -1,6 +1,6 @@
 ---
 :keys:
-    f: :echo
+    f: echo %f
     e: :enter
     a: - New mapping (key command to run in shell)
        - :map

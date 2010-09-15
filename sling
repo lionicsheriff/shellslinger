@@ -224,7 +224,7 @@ end
     
 
 def load_config
-    config_file = "#{ENV['HOME']}/.ib.rc"
+    config_file = "#{ENV['HOME']}/.slingrc"
     return YAML.load_file(config_file)
 end
 
@@ -234,7 +234,7 @@ end
     
 begin
     $config = load_config
-    read_dir "#{ENV['HOME']}/Music/temp" while(true)
+    read_dir "#{ENV['HOME']}" while(true)
 rescue StandardError => e
     raise e
     puts e.message
