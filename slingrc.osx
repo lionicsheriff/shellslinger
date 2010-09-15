@@ -16,7 +16,8 @@
     h: <head %f
     d: rm %f!?
     |: cat %f | %i
-    ?: :help
+    ?: :keys
+    :: :do_action
     m:
         m: mv %f ~/Music!
         d: mv %f ~/Documents!
