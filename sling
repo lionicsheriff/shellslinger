@@ -186,6 +186,11 @@ def expand cmd,f
     cmd = cmd.gsub "::",":" 
     f = f.gsub(/'/,"\\\\\\\\'") #escape single quote for system
     f = f.gsub(/ /,"\\ ")
+    f = f.gsub(/"/,"\\\"")
+    f = f.gsub(/\[/,"\\[")
+    f = f.gsub(/\]/,"\\]")
+    f = f.gsub(/\(/,"\\(")
+    f = f.gsub(/\)/,"\\)")
     cmd = cmd.gsub '%f',f
     return cmd
 end
