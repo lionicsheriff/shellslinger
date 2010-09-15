@@ -34,6 +34,20 @@ $actions ={
             return :exit,queue
         end
     ],
+    :config_load => [
+        "Reload configuration file",
+        lambda do |map,key,file,queue| 
+            load_config
+            return :config_load,queue
+        end
+    ],
+    :config_save => [
+        "Save configuration",
+        lambda do |map,key,file,queue| 
+            save_config
+            return :config_save,queue
+        end
+    ],
     :enqueue => [
         "Put next command into queue",
         lambda do |map,key,file,queue|
@@ -241,7 +255,11 @@ end
 
 def load_config
     config_file = "#{ENV['HOME']}/.slingrc"
-    return YAML.load_file(config_file)
+    $config = YAML.load_file(config_file)
+end
+def save_config
+    config_file = "#{ENV['HOME']}/.slingrc"
+    File.open(config_file, "w") do |f| f.write($config.to_yaml) end
 end
 
 def at_exit
@@ -250,7 +268,7 @@ end
     
 #m
 begin
-    $config = load_config
+    load_config
     if ARGV.count > 0
         ARGV.each do |p|
             act_on_path p
