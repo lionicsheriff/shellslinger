@@ -57,11 +57,15 @@ COMMANDS
 ##Modifiers
 
 ###Prefixes
+
 **:** denotes an internal command
+
 **<** at the start of a shell command stops it from being put into command history.
 
 ##Suffixes 
+
 **!** at the end of a shell command will add it to the command queue to be processed when you are finished with the file. Queued commands can be removed with the :undo internal command.
+
 **?** at the end of a shell command will cause sling to ask for confirmation before processing the command.
 
 ESCAPES
