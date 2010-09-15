@@ -1,10 +1,10 @@
 #!/usr/bin/env ruby
 
 require 'yaml'
-require 'Pathname'
 
 require 'rubygems'
 require 'trollop'
+require 'colorize'
 
 $actions ={
     :do_action => [
@@ -245,7 +245,7 @@ end
 
 def act_on_file file
     unless [".",".."].include? File.basename(file)
-        puts "--> #{File.basename(file)}"
+        puts "-->".colorize(:yellow) +" #{File.basename(file)}"
         q = []
         r,q = do_action $config[:keys],file,q until ( r == :next or r == :exit)
         unless q == []
@@ -259,7 +259,7 @@ def act_on_file file
 end
 
 def act_on_dir dir
-    puts "#{dir}/"
+    puts "#{dir}/".colorize(:yellow)
     Dir.chdir(dir)
     Dir.foreach(dir) do | f |
         act_on_file  "#{dir}/#{f}"
