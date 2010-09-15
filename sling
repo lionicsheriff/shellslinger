@@ -253,7 +253,7 @@ def act_on_file file
         unless q == []
             puts "Processing queue"
             q.each do |c|
-               do_cmd c,file,[]
+               do_cmd "<" + c,file,[] # add the no history modifier
             end
         end
         if r == :exit then exit 0 end
