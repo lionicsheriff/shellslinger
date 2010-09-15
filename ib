@@ -1,0 +1,154 @@
+#!/usr/bin/env ruby
+
+require 'yaml'
+
+def read_key
+    old_stty = `stty -g`
+    system "stty cbreak -echo"
+    k = STDIN.read(1)
+    system "stty #{old_stty}"
+    return k
+end
+
+# This expansion is before being added to command history
+def early_expand cmd,f
+    if $config[:abbrev] then
+        $config[:abbrev].keys.each do | abbrev |
+            cmd = cmd.gsub "%#{abbrev}",$config[:abbrev][abbrev] 
+        end
+    end
+    while cmd =~ /%i/
+        cmd = cmd.sub "%i",gets.strip
+    end
+    return cmd
+end
+# This expansion is before doing the command
+def expand cmd,f
+    early_expand cmd,f
+    cmd = cmd.gsub "%%","%" 
+    cmd = cmd.gsub "::",":" 
+    cmd = cmd.gsub "%f",f  # this ensures that the file name will not be mutated
+    return cmd
+end
+
+def do_cmd cmd,f,q
+    cmd = early_expand cmd,f
+    if cmd[0,1] == "<" then
+        cmd = cmd[1..-1]
+    else
+        $prev_cmd = cmd
+    end
+    if cmd.match '\?$' then 
+        cmd = cmd[0..-2] 
+        puts "Command is: #{cmd}"
+        print "Continue [yn]:"
+        key = read_key.downcase until key == 'y' or key == 'n'
+        if key == 'y' then
+            puts key
+            #cmd has already had the trailing ? removed
+        else
+            puts key
+            puts "Cancelled"
+            return :cancelled,q
+        end
+    end
+
+    if cmd.match "!$" then #queue the command
+        q << cmd[0..-2] 
+        return :queued,q
+    else #do the command
+        cmd = expand cmd,f
+        puts cmd
+        return (system cmd),q 
+    end
+end
+
+def do_action map,f,q,prev_key=""
+    execute = lambda do |action|
+        case action
+            when Array then 
+                puts action[0]
+                return execute.call action[1]
+            when :enter then read_dir map,f
+            when :next then return :next,q
+            when :exit then return :exit,q
+            when :enqueue then 
+                raise NotImplementedError,"Enqueue next command is not implemented yet"
+                #if action.match "!$" then return do_cmd action,f,q
+                #else return do_cmd action << "!",f,q 
+                #end
+            when :show_queue then 
+                if q != [] then 
+                    q.each {|c| puts c} 
+                else
+                    puts "empty"
+                end
+                return :show_queue,q
+            when :show_prev_cmd then
+                if $prev_cmd then puts $prev_cmd
+                else puts "No previous command"
+                end
+                return :show_prev_cmd,q
+            when :prev_cmd 
+                if $prev_cmd then return do_cmd $prev_cmd,f,q 
+                else return :prev_cmd,q 
+                end
+            when :map then 
+                print "Map: "
+                map.merge! Hash[*gets.split(" ",2)]
+                return :map,q
+            when :undo then return :undo,q[0..-2]
+            else return do_cmd action,f,q
+        end
+        raise NotImplementedError,"Map failed: #{key}"
+    end
+
+    key = read_key
+    case map[key] 
+    when nil then
+        puts "No mapping for #{prev_key}#{key}"
+        return :nomap,q
+    when Hash then return do_action map[key],f,q,key
+    else return execute.call map[key]
+    end
+end
+
+def read_dir dir
+    Dir.chdir(dir)
+
+    Dir.foreach(dir) do | f |
+        unless [".",".."].include? f
+            puts fullpath = "#{dir}/#{f}"
+            q = []
+            r,q = do_action $config[:keys],fullpath,q until ( r == :next or r == :exit)
+            unless q == []
+                puts "Processing queue"
+                q.each do |c|
+                    puts c
+                end
+            end
+            if r == :exit then exit 0 end
+        end
+    end
+end
+    
+
+def load_config
+    config_file = "#{ENV['HOME']}/.ib.rc"
+    return YAML.load_file(config_file)
+end
+
+def at_exit
+    exit 0
+end
+    
+begin
+    $config = load_config
+    read_dir ENV['HOME'] while(true)
+rescue StandardError => e
+    puts e.message
+    puts e.backtrace
+    exit 1
+end
+
+
