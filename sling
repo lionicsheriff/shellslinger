@@ -42,15 +42,15 @@ $actions ={
             return :next,queue
         end
     ],
-    :help => [
-        "Show help",
+    :keys => [
+        "Show key bindings",
         lambda do |map,key,file,queue| 
-            show_help
-            return :help,queue
+            show_keys
+            return :keys,queue
         end
     ],
     :exit => [
-        "exit",
+        "Quit this program",
         lambda do |map,key,file,queue| 
             return :exit,queue
         end
@@ -76,7 +76,7 @@ $actions ={
         end
     ],
     :show_queue => [
-        "show",
+        "Show commands queued for file",
         lambda do |map,key,file,queue|
             if queue != [] then 
                 queue.each {|c| puts c} 
@@ -138,14 +138,14 @@ $actions ={
 
 def show_commands
     $actions.keys.each do |act|
-        puts "#{act}\t#{$actions[act][0]}"
+        puts "#{act.to_s.ljust(30)}#{$actions[act][0]}"
     end
 end
 
-def show_help map=$config[:keys],leader=""
+def show_keys map=$config[:keys],leader=""
     map.keys.each do | key |
         if map[key].class == Hash
-            show_help map[key],leader + key
+            show_keys map[key],leader + key
         else
             desc = if map[key].class == Array then map[key][1]
                    elsif map[key].class == Symbol then 
@@ -153,7 +153,7 @@ def show_help map=$config[:keys],leader=""
                        else "Invalid command: :#{map[key]}" end
                    else map[key]
             end
-            puts "#{leader}#{key}: #{desc}"
+            puts "#{leader}#{key}:\t#{desc}"
         end
     end
 end
@@ -290,6 +290,19 @@ end
 #m
 begin
     load_config
+    opts = Trollop::options do
+        banner "Usage: #{File.basename $0} [options] [files]"
+        opt :commands, "Show commands"
+        opt :keys, "Show keys"
+    end
+    if opts[:commands_given] then 
+        show_commands 
+        exit 0
+    end
+    if opts[:keys_given] then 
+        show_keys 
+        exit 0
+    end
     if ARGV.count > 0
         ARGV.each do |p|
             act_on_path p
