@@ -98,7 +98,7 @@ $actions ={
     :prev_cmd => [
         "Repeat previous command on file",
         lambda do |map,key,file,queue|
-            if $prev_cmd then return do_cmd $prev_cmd,f,q 
+            if $prev_cmd then return do_cmd $prev_cmd,file,queue
                 else return :prev_cmd,queue 
             end
         end
