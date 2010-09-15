@@ -1,21 +1,22 @@
 ---
 :keys:
-    f: echo %sn
+    f: :echo
     e: :enter
-    a: - New mapping (key some shell command)
+    a: - New mapping (key command to run in shell)
        - :map
     u: :undo
     .: :prev_cmd
     >: :show_prev_cmd
     q: :enqueue
-    Q: - Current queue is:
+    Q: - Current queue is
        - :show_queue
     x: :exit
     p: :preview
     t: <tail %f
     h: <head %f
     d: rm %f!?
-    ?: less ~/.ib.yaml
+    |: cat %f | %i
+    ?: :help
     m:
         m: mv %f ~/Music!
         d: mv %f ~/Documents!
@@ -25,13 +26,15 @@
         h: - Move to where?
            - mv %f ~/%i!
         t: mv %f ~/.Trash
+    h: :help
     c:
         l: :config_load
         s: :config_save
     n: :next
 :filetypes:
-    txt|README: head %f
-    avi|mkv|flv: mplayer %f
+    txt,README: head %f
+    avi,mkv,flv: mplayer %f
+    mp3,ogg,flac: mplayer %f
     .: open %f
 :abbrev:
     sn: `echo %f | sed 's/%i/'`

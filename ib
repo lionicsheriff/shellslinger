@@ -2,6 +2,123 @@
 
 require 'yaml'
 
+$actions ={
+    :enter => [
+        "Enter directory",
+        lambda do |map,key,file,queue| 
+            read_dir file
+            return :enter,queue
+        end
+    ],
+    :next => [
+        "Next file",
+        lambda do |map,key,file,queue| 
+            return :next,queue
+        end
+    ],
+    :help => [
+        "Show help",
+        lambda do |map,key,file,queue| 
+            show_help
+            return :help,queue
+        end
+    ],
+    :exit => [
+        "exit",
+        lambda do |map,key,file,queue| 
+            return :exit,queue
+        end
+    ],
+    :enqueue => [
+        "Put next command into queue",
+        lambda do |map,key,file,queue|
+            return :enqueue,queue
+        end
+    ],
+    :show_queue => [
+        "show",
+        lambda do |map,key,file,queue|
+            if queue != [] then 
+                queue.each {|c| puts c} 
+            else
+                puts "empty"
+            end
+            return :show_queue,queue
+        end
+    ],
+    :show_prev_cmd => [
+        "Show previous command on file",
+        lambda do |map,key,file,queue|
+            if $prev_cmd then puts $prev_cmd
+                else puts "No previous command"
+                end
+            return :show_prev_cmd,queue
+        end
+    ],
+    :prev_cmd => [
+        "Repeat previous command on file",
+        lambda do |map,key,file,queue|
+            if $prev_cmd then return do_cmd $prev_cmd,f,q 
+                else return :prev_cmd,queue 
+            end
+        end
+    ],
+    :map => [
+        "Map new command",
+        lambda do |map,key,file,queue|
+            print "Map: "
+            map.merge! Hash[*gets.split(" ",2)]
+            return :map,queue
+        end
+    ],
+    :preview => [
+        "Preview file",
+        lambda do |map,key,file,queue| 
+            ext = file.split(".")[-1]
+            previewed = false #can't return from the if ft.match 'cause mplayer causes a LocalJumpError
+            $config[:filetypes].keys.each do | ft |
+                if ft.match ext then 
+                    do_cmd $config[:filetypes][ft],file,queue 
+                    previewed = true
+                    break
+                end
+            end
+            # default handler is .
+            unless previewed then do_cmd $config[:filetypes]["."],file,queue end
+            return :preview,queue
+        end
+    ],
+    :undo => [
+        "Remove most recent item from queue",
+        lambda do |map,key,file,queue|
+            return :undo,queue[0..-2]
+        end
+    ]
+}
+
+def show_commands
+    $actions.keys.each do |act|
+        puts "#{act}\t#{$actions[act][0]}"
+    end
+end
+
+def show_help map=$config[:keys],leader=""
+    map.keys.each do | key |
+        if map[key].class == Hash
+            show_help map[key],leader + key
+        else
+            desc = if map[key].class == Array then map[key][1]
+                   elsif map[key].class == Symbol then 
+                       if $actions[map[key]] then $actions[map[key]][0]
+                       else "Invalid command: :#{map[key]}" end
+                   else map[key]
+            end
+            puts "#{leader}#{key}: #{desc}"
+        end
+    end
+end
+    
+
 def read_key
     old_stty = `stty -g`
     system "stty cbreak -echo"
@@ -27,7 +144,7 @@ def expand cmd,f
     early_expand cmd,f
     cmd = cmd.gsub "%%","%" 
     cmd = cmd.gsub "::",":" 
-    cmd = cmd.gsub "%f",f  # this ensures that the file name will not be mutated
+    cmd = cmd.gsub '%f',f.gsub(/'/,"\\\\\\\\'") #escape single quote for system
     return cmd
 end
 
@@ -58,58 +175,31 @@ def do_cmd cmd,f,q
         return :queued,q
     else #do the command
         cmd = expand cmd,f
-        puts cmd
-        return (system cmd),q 
+        return (system cmd),q
     end
 end
 
-def do_action map,f,q,prev_key=""
-    execute = lambda do |action|
-        case action
-            when Array then 
-                puts action[0]
-                return execute.call action[1]
-            when :enter then read_dir map,f
-            when :next then return :next,q
-            when :exit then return :exit,q
-            when :enqueue then 
-                raise NotImplementedError,"Enqueue next command is not implemented yet"
-                #if action.match "!$" then return do_cmd action,f,q
-                #else return do_cmd action << "!",f,q 
-                #end
-            when :show_queue then 
-                if q != [] then 
-                    q.each {|c| puts c} 
-                else
-                    puts "empty"
-                end
-                return :show_queue,q
-            when :show_prev_cmd then
-                if $prev_cmd then puts $prev_cmd
-                else puts "No previous command"
-                end
-                return :show_prev_cmd,q
-            when :prev_cmd 
-                if $prev_cmd then return do_cmd $prev_cmd,f,q 
-                else return :prev_cmd,q 
-                end
-            when :map then 
-                print "Map: "
-                map.merge! Hash[*gets.split(" ",2)]
-                return :map,q
-            when :undo then return :undo,q[0..-2]
-            else return do_cmd action,f,q
-        end
-        raise NotImplementedError,"Map failed: #{key}"
-    end
-
+def do_action map,file,queue,prev_key=""
     key = read_key
     case map[key] 
     when nil then
         puts "No mapping for #{prev_key}#{key}"
-        return :nomap,q
-    when Hash then return do_action map[key],f,q,key
-    else return execute.call map[key]
+        return :nomap,queue
+    when Hash then return do_action map[key],file,queue,key
+    when Array then 
+        puts map[key][0]
+        if map[key][1].class == Symbol
+            return $actions[map[key][1]][1].call map,key,file,queue
+        else 
+            return do_cmd map[key]
+        end
+    when Symbol 
+        if $actions[map[key]]
+            return $actions[map[key]][1].call map,key,file,queue
+        else
+            raise NotImplementedError,"Command not found: #{map[key]}"
+        end
+    else return do_cmd map[key],file,queue
     end
 end
 
@@ -144,8 +234,9 @@ end
     
 begin
     $config = load_config
-    read_dir ENV['HOME'] while(true)
+    read_dir "#{ENV['HOME']}/Music/temp" while(true)
 rescue StandardError => e
+    raise e
     puts e.message
     puts e.backtrace
     exit 1
