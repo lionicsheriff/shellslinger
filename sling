@@ -217,6 +217,7 @@ def do_cmd cmd,f,q
         return :queued,q
     else #do the command
         cmd = expand cmd,f
+        puts cmd
         return (system cmd),q
     end
 end
