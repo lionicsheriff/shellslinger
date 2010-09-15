@@ -3,7 +3,28 @@
 require 'yaml'
 require 'Pathname'
 
+require 'rubygems'
+require 'trollop'
+
 $actions ={
+    :do_action => [
+        "Do an action from input",
+        lambda do |map,key,file,queue| 
+            print "Command: "
+            cmd = STDIN.gets.strip
+            if cmd[0,1] == ":"
+                action = $actions[cmd[1..-1].to_sym]
+                if action
+                    return action[1].call map,key,file,queue
+                else
+                    puts "Command not found"
+                    return :do_action,queue
+                end
+            else
+                return do_cmd cmd,file,queue
+            end
+        end
+    ],
     :enter => [
         "Enter directory",
         lambda do |map,key,file,queue| 
