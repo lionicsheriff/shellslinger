@@ -11,6 +11,7 @@
     Q: - Current queue is
        - :show_queue
     x: :exit
+    s: <du -hs %f
     p: :preview
     t: <tail %f
     h: <head %f
