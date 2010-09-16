@@ -253,7 +253,8 @@ end
 
 def act_on_file file
     unless [".",".."].include? File.basename(file)
-        puts "-->".colorize(:yellow) +" #{File.basename(file)}"
+        suffix = File.directory?(file) ? "/" : ""
+        puts "-->".colorize(:yellow) +" #{File.basename(file)}#{suffix}"
         q = []
         r,q = do_action $config[:keys],file,q until ( r == :next or r == :exit)
         unless q == []
